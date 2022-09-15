@@ -1,0 +1,42 @@
+#!/bin/bash -x
+
+
+function epgw_install() {
+  # set install directory
+  epgwBaseDir="eggplant-gateway"
+  epgwInstallDir="${epgwBaseDir}/${1}"
+
+  # create install directory
+  [[ -d ${epgwInstallDir} ]] && return || mkdir ${epgwInstallDir}
+
+  # extract
+  tar xvzf bin/${epgwLatestFile} --directory ${epgwInstallDir}
+
+  # change mode
+  chmod +x ./${epgwInstallDir}/epgw
+  epgwVersion=$(./${epgwInstallDir}/epgw --version)
+  [[ ${epgwVersion} ]] || xattr -r -d com.apple.quarantine ${epgwInstallDir}/.
+
+  # add symlink to path
+  ln -s -f ./${epgwInstallDir}/epgw epgw
+  [[ -f /usr/local/bin/epgw ]] || sudo ln -s -f ${PWD}/epgw /usr/local/bin/epgw
+}
+
+
+function epgw_download() {
+  # get the latest release details
+  epgwDownloadPage="https://eggplantsoftware.gitlab.io/products/connectivity/epgw/download/"
+  epgwDownloadData=$(curl -s ${epgwDownloadPage})
+  epgwDownloadUrl=$(grep -o '<a .*href=.*>' <<< ${epgwDownloadData} | sed -e 's/<a /\n<a /g' | sed -e 's/<a .*href=['"'"'"]//' -e 's/["'"'"'].*$//' -e '/^$/ d' |grep osx)
+  export epgwLatestFile="${epgwDownloadUrl##*/}"
+  export epgwlatestVersion=$(awk -F'.' '{print $2"."$3"."$4}' <<< ${epgwLatestFile})
+
+  # download
+  [[ -d  bin ]] || mkdir bin
+  [[ -f bin/${epgwLatestFile} ]] || curl ${epgwDownloadUrl} --output bin/${epgwLatestFile}
+}
+
+
+# install
+epgw_download
+epgw_install ${epgwlatestVersion}

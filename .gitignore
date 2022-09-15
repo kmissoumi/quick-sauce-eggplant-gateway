@@ -1,0 +1,8 @@
+.DS_Store
+bin
+Logs
+tmp
+eggplant-gateway
+eggplant-studio
+epgw.*.json
+epgw
